@@ -43,6 +43,33 @@ public class Agents {
         return this.posY;
     }
 
+    public float getSpeed(){
+        return this.speed;
+    }
+
+    public void moveToGoal(){
+        if(this.posX < this.goalX){
+            this.posX += this.speed;
+        }
+        if(this.posY < this.goalY){
+            this.posY += this.speed;
+        }
+        if(this.posY > this.goalY){
+            this.posY -= this.speed;
+        }
+    }
+
+    public void distanceDifference(Agents agent){
+        float x = agent.getPosX();
+        float y = agent.getPosY();
+        float differenceX = Math.abs(x - this.posX);
+        float differenceY = Math.abs(y - this.posY);
+
+        if(differenceX < 20 && differenceY < 20){
+            this.speed += 2;
+            agent.speed -= 1;
+        }
+    }
 
     /*public void moveForward(double x){
         setPosX(getPosX() + x);
