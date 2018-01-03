@@ -10,6 +10,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
+import javafx.scene.shape.Line;
 import javafx.stage.Stage;
 
 import java.io.*;
@@ -19,21 +20,52 @@ import java.util.ArrayList;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-
+/**
+ * Purpose: The GUI server controls the simulation.
+ * Buttons are used to: start a server, initiate agent handlers, start a simulation,
+ * and pause it.
+ * Input fields are used to register the amount of agents desired to initiate before
+ * initiating the agent handlers.
+ * The GUI server has an inner Server class that waits for TWO agent handlers to
+ * connect, and another inner Server Listener class that receives data from
+ * respective handler.
+ *
+ * @author Amin Yassin
+ * @version 1.0 03/01/2018
+ *
+ */
 public class GUIServer extends Application{
 
+    /**
+     * To prevent reading/ writing at the same time.
+     */
     public ReadWriteLock lock = new ReentrantReadWriteLock();
 
-    float[] arrayBlue, arrayOrange;
+    /**
+     * To store data received from handlers.
+     */
+    public float[] bluePositions, orangePositions;
 
-    public ArrayList<Circle> circlesOrange = new ArrayList<>();
-    public ArrayList<Circle> circlesBlue = new ArrayList<>();
+    /**
+     * To store the representations of agents in ArrayLists.
+     */
+    private ArrayList<Circle> circlesOrange = new ArrayList<>();
+    private ArrayList<Circle> circlesBlue = new ArrayList<>();
 
-    private boolean createCircles = true; // Creating circlesOrange for the first time.
+    /**
+     * Creating circlesOrange for the first time.
+     */
+    private boolean createCircles = true;
 
-    // Create threads that handles agents:
     private AgentHandler aOrange, aBlue;
 
+    /**
+     * Here all parts of the application window are managed (Buttons, input fields, circles).
+     * The animation of the circles are also controlled here.
+     *
+     * @param window
+     * @throws Exception
+     */
     public void start(Stage window) throws Exception {
 
         // Setting window and scene:
@@ -45,20 +77,26 @@ public class GUIServer extends Application{
         window.setScene(myScene);
         window.show();
 
+        // Line for elegency:
+        Line line1 = new Line(0, 110, 800, 110);
+
         // Buttons to control the simulation window.
-        Button startServerBtn = new Button("Start SERVER");
-        Button startBtn = new Button("Start sim");
-        startBtn.setDisable(true);
-        Button stopBtn = new Button("Stop sim");
-        Button startAgents = new Button("Start Agents");
-        startServerBtn.setLayoutX(20.0);
-        startServerBtn.setLayoutY(30.0);
-        startBtn.setLayoutX(150);
-        startBtn.setLayoutY(30);
-        stopBtn.setLayoutX(250);
-        stopBtn.setLayoutY(30);
-        startAgents.setLayoutX(20.0);
-        startAgents.setLayoutY(70.0);
+        Button startServer = new Button("Start SERVER");
+        Button startSim = new Button("Start sim");
+        startSim.setDisable(true);
+        Button stopSim = new Button("Stop sim");
+        stopSim.setDisable(true);
+        Button initiateAgents = new Button("Start Agents");
+        initiateAgents.setDisable(true);
+
+        startServer.setLayoutX(20.0);
+        startServer.setLayoutY(30.0);
+        startSim.setLayoutX(150);
+        startSim.setLayoutY(30);
+        stopSim.setLayoutX(250);
+        stopSim.setLayoutY(30);
+        initiateAgents.setLayoutX(20.0);
+        initiateAgents.setLayoutY(70.0);
 
         // Labels and input fields:
         final Label client1 =  new Label();
@@ -79,7 +117,8 @@ public class GUIServer extends Application{
         client2Input.setLayoutY(70);
 
         // Add all elements (fields, labels, etc) to the root object.
-        root.getChildren().addAll(startServerBtn, startBtn, stopBtn, startAgents, client1, client2, client1Input, client2Input);
+        root.getChildren().addAll(line1, startServer, startSim,
+                stopSim, initiateAgents, client1, client2, client1Input, client2Input);
 
         // The animation of the agents happens here.
         AnimationTimer at = new AnimationTimer() {
@@ -89,27 +128,21 @@ public class GUIServer extends Application{
             @Override
             public void handle(long now) {
                 // Implementing some sort of a delay - Be nice to resources:
-                if(now - lastUpdate >= 300_000_000){
+                if(now - lastUpdate >= 250_000_000){
                     int c = 0;
                     lock.readLock().lock();
-                    //if(arrayBlue.length != 0){
-                        for(int i = 0; i < arrayBlue.length; i += 2){
-                            circlesBlue.get(c).setCenterX(arrayBlue[i]);
-                            circlesBlue.get(c).setCenterY(arrayBlue[i+1]);
-                            c++;
-                            //System.out.println("Drawing blue");
-                        }
-                    //}
+                    for(int i = 0; i < bluePositions.length; i += 2){
+                        circlesBlue.get(c).setCenterX(bluePositions[i]);
+                        circlesBlue.get(c).setCenterY(bluePositions[i+1]);
+                        c++;
+                    }
                     c = 0;
 
-                    //if(arrayOrange.length != 0){
-                        for(int i = 0; i < arrayOrange.length; i += 2){
-                            circlesOrange.get(c).setCenterX(arrayOrange[i]);
-                            circlesOrange.get(c).setCenterY(arrayOrange[i+1]);
-                            c++;
-                            //System.out.println("Drawing orange");
-                        }
-                    //}
+                    for(int i = 0; i < orangePositions.length; i += 2){
+                        circlesOrange.get(c).setCenterX(orangePositions[i]);
+                        circlesOrange.get(c).setCenterY(orangePositions[i+1]);
+                        c++;
+                    }
                     lock.readLock().unlock();
                     lastUpdate = now;
                 }
@@ -117,25 +150,25 @@ public class GUIServer extends Application{
         };
 
         // Start the server and then listener from here.
-        startServerBtn.setOnAction( e -> {
+        startServer.setOnAction( e -> {
             new Server().start(); // Runs only one time.
             System.out.println("Server Started");
-            startServerBtn.setDisable(true);
-            startBtn.setDisable(false);
+            startServer.setDisable(true);
+            initiateAgents.setDisable(false);
         });
 
         // Start the simulation here.
-        startBtn.setOnAction( e -> {
+        startSim.setOnAction( e -> {
             // Creating circlesOrange:
             if (createCircles) {
                lock.readLock().lock();
-               for (int i = 0; i < arrayOrange.length; i += 2) {
-                   System.out.println("Array Orange X " + arrayOrange[i] + " array Orange Y " + arrayOrange[i+1]);
-                   circlesOrange.add(new Circle(arrayOrange[i], arrayOrange[i+1], 15, Color.ORANGE));
+               for (int i = 0; i < orangePositions.length; i += 2) {
+                   System.out.println("Array Orange X " + orangePositions[i] + " array Orange Y " + orangePositions[i+1]);
+                   circlesOrange.add(new Circle(orangePositions[i], orangePositions[i+1], 15, Color.ORANGE));
                }
-               for(int i = 0; i < arrayBlue.length; i += 2){
-                   System.out.println("Array Blue X " + arrayBlue[i] + " array Blue Y " + arrayBlue[i+1]);
-                   circlesBlue.add(new Circle(arrayBlue[i], arrayBlue[i+1], 10, Color.BLUE));
+               for(int i = 0; i < bluePositions.length; i += 2){
+                   System.out.println("Array Blue X " + bluePositions[i] + " array Blue Y " + bluePositions[i+1]);
+                   circlesBlue.add(new Circle(bluePositions[i], bluePositions[i+1], 10, Color.BLUE));
                }
                root.getChildren().addAll(circlesOrange);
                root.getChildren().addAll(circlesBlue);
@@ -145,44 +178,57 @@ public class GUIServer extends Application{
             System.out.println("Blue circle size: " + circlesBlue.size());
             createCircles = false; // With this, circles aren't going to be created again.
             at.start();
-            startBtn.setDisable(true);
-            stopBtn.setDisable(false);
+            startSim.setDisable(true);
+            stopSim.setDisable(false);
         });
 
         // To stop/   the simulation: Need to check on how to pause the threads too, client's especially.
-        stopBtn.setOnAction( e -> {
+        stopSim.setOnAction( e -> {
             at.stop();
-            stopBtn.setDisable(true);
-            startBtn.setDisable(false);
+            stopSim.setDisable(true);
+            startSim.setDisable(false);
         });
 
-        startAgents.setOnAction( e -> {
+        // To create agent instances, and handler threads over the network before starting the simulation.
+        initiateAgents.setOnAction( e -> {
             aBlue = new AgentHandler("Blue", Integer.parseInt(client1Input.getText()), Color.BLUE);
             aOrange = new AgentHandler("Orange", Integer.parseInt(client2Input.getText()), Color.ORANGE);
 
-            arrayBlue = new float[Integer.parseInt(client1Input.getText()) * 2];
-            arrayOrange = new float[Integer.parseInt(client2Input.getText()) * 2];
+            bluePositions = new float[Integer.parseInt(client1Input.getText()) * 2];
+            orangePositions = new float[Integer.parseInt(client2Input.getText()) * 2];
             aBlue.start();
             aOrange.start();
 
-            startAgents.setDisable(true);
+            initiateAgents.setDisable(true);
             client1Input.setDisable(true);
             client2Input.setDisable(true);
+            startSim.setDisable(false);
         });
 
-    } // Start
+    } // Start()
 
+    /**
+     * A main method to start the application.
+     *
+     * @param args
+     */
     public static void main(String[] args){
         launch(args);
     }
 
-    //========================== Server & Listener classes ==========================//
-    // A server class that waits for clients and starts a listening thread:
+    /**
+     * Purpose: To listen to a port and wait for two handlers to connection.
+     *
+     */
     private class Server extends Thread{
 
         private ServerSocket mServerSocket;
         private ServerListener mServerListener;
 
+        /**
+         * A run() function that listens to a port and waits for two handlers.
+         *
+         */
         @Override
         public void run() {
             int clientCounter = 0;
@@ -202,57 +248,63 @@ public class GUIServer extends Application{
                 System.out.println("Server: Error: " + e);
                 e.printStackTrace();
             }
-            System.out.println("########Server no longer running########");
+            System.out.println("######## Server is shutdown ########");
         }
     }
 
-    // private Server Listener class that listens to data from clients:
+    /**
+     * Purpose: Receive position data from handlers that were connected via the Server class.
+     * The data received are directly stored into global variables.
+     *
+     */
     private class ServerListener extends Thread {
 
         boolean serverRunning = true;
         ObjectInputStream dinObject = null;
         DataInputStream dinData = null;
-        DataOutputStream doutBoolean = null;
         Socket socket = null;
-
-        // Local variables to receive data. It's too much, I know...
         String ID;
 
-        public ServerListener(Socket s){
-            this.socket = s;
+        /**
+         * A constructor for the Server Listener class.
+         *
+         * @param socket The socket corresponding to the handler's.
+         *
+         */
+        public ServerListener(Socket socket){
+            this.socket = socket;
         }
 
+        /**
+         * A run() function that receives array data containing positions from a handler
+         * and saves it into a global variable. It also receives a string containing the
+         * ID of the handler.
+         *
+         */
+        @Override
         public void run() {
             try {
 
                 dinObject = new ObjectInputStream(socket.getInputStream());
                 dinData = new DataInputStream(socket.getInputStream());
-                doutBoolean = new DataOutputStream(socket.getOutputStream());
 
                 while (serverRunning) {
                     try {
-                        // Being nice towards the processor:
-                        // If there's no delay, the circlesOrange go astray.
                         Thread.sleep(100);
 
-                        //receiveOk = dinData.readBoolean();
                         if((ID = dinData.readUTF()) != null) {
-                            if (ID.equals(aBlue.getID())) {
+                            if (ID.equals(aBlue.getHandlerID())) {
                                 lock.writeLock().lock();
-                                arrayBlue = (float[]) dinObject.readUnshared();
+                                bluePositions = (float[]) dinObject.readUnshared();
                                 lock.writeLock().unlock();
-                                System.out.println("******** BLUEBERRY PIE! ********" + arrayBlue.length);
-
-                            } else if (ID.equals(aOrange.getID())) {
+                            } else if (ID.equals(aOrange.getHandlerID())) {
                                 lock.writeLock().lock();
-                                arrayOrange = (float[]) dinObject.readUnshared();
+                                orangePositions = (float[]) dinObject.readUnshared();
                                 lock.writeLock().unlock();
-                                System.out.println("******** ORANGE JUÍCE! ********" + arrayOrange.length);
                             } else {
                                 System.out.println("Waiting for data from Handler.");
                             }
                         }
-
                         else{
                             System.out.println("Nothing was sent to server.");
                         }
@@ -272,7 +324,7 @@ public class GUIServer extends Application{
                     }
                 }
                 closeThread();
-                System.out.println("#######Server listener is terminating#######");
+                System.out.println("####### Server listener is terminating #######");
             }
             catch (IOException e) {
                 closeThread();
@@ -280,18 +332,24 @@ public class GUIServer extends Application{
                 e.printStackTrace();
             }
         } // run
+
+        /**
+         * To close the socket and all streams in case an exception occurs or the while
+         * loop has ended for some reason.
+         *
+         */
         private void closeThread(){
             serverRunning = false;
             try{
                 socket.close();
                 dinObject.close();
                 dinData.close();
-                doutBoolean.close();
+                //doutBoolean.close();
             }catch(IOException e){
                 System.out.println("Error - closeThread - ServerListener: " + e);
                 e.printStackTrace();
             }
         }
-    } //class ServerListener
+    }
 
-} // GUIServer
+} // GUIServer class
