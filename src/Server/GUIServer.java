@@ -57,7 +57,7 @@ public class GUIServer extends Application{
      */
     private boolean createCircles = true;
 
-    private AgentHandler aOrange, aBlue;
+    private AgentHandler aOrange, aBlue; // To create handlers directly from the server.
 
     /**
      * Here all parts of the application window are managed (Buttons, input fields, circles).
@@ -259,11 +259,10 @@ public class GUIServer extends Application{
      */
     private class ServerListener extends Thread {
 
-        boolean serverRunning = true;
-        ObjectInputStream dinObject = null;
-        DataInputStream dinData = null;
-        Socket socket = null;
-        String ID;
+        private boolean serverRunning = true;
+        private ObjectInputStream dinObject = null;
+        private DataInputStream dinData = null;
+        private Socket socket = null;
 
         /**
          * A constructor for the Server Listener class.
@@ -283,6 +282,7 @@ public class GUIServer extends Application{
          */
         @Override
         public void run() {
+            String ID;
             try {
 
                 dinObject = new ObjectInputStream(socket.getInputStream());
