@@ -1,7 +1,6 @@
 package Controller;
 
 import ClientModel.Agent;
-import javafx.scene.paint.Color;
 
 import java.io.*;
 import java.net.Socket;
@@ -23,25 +22,20 @@ public class AgentHandler extends Thread {
 
     private List<Agent> agentList = new ArrayList<>();
     private String handlerID;
-    float[] xyPositions;
-
+    private float[] xyPositions;
+    private float[] oppositeXY;
 
     /**
-     * Constructor of the AgentHandler.
+     * A constructor of the AgentHandler.
+     * <br>
+     * The handler ID is specified by the client that will initiate the handlers.
      *
-     * @param handlerID A string that identifies the AgentHandler.
-     * @param amount Specifies the amount of agents to be created.
-     * @param color Pass this parameter to respective agent in Agent class.
-     *
+     * @param ID
      */
-    public AgentHandler(String handlerID, int amount, Color color){
-        for (int i = 0; i < amount; i++){
-            Agent a = new Agent(color);
-            agentList.add(a);
-        }
-        this.handlerID = handlerID;
-        System.out.println("Amount of agents created: " + agentList.size());
-    }
+    /*public AgentHandler(String ID){
+        this.handlerID = ID;
+    }*/
+
 
     /**
      * A getter function that returns the ID of the handler.
@@ -54,19 +48,69 @@ public class AgentHandler extends Thread {
     }
 
     /**
-     * Checks the distance difference between agents in the same group. The function is
-     * optimized so that agents that were already checked aren't checked again.
+     * Checks the distance difference between agents in the same group.
+     * The function is optimized so that agents that were already checked
+     * aren't checked again.
      *
      */
-    public void collisionChecker(){
-        for(int i = 0; i < agentList.size() - 1; i++){
-            for(int j = i+1; j < agentList.size(); j++){
-                if(Math.abs(agentList.get(i).getPosX() - agentList.get(j).getPosX()) < 30.0f){
-                    agentList.get(j).tryAvoidingCollision();
+    public void checkCollisionSameGroup(){
+
+        int c = 0;
+        float x, y;
+
+        if(getHandlerID().equalsIgnoreCase("orange")) {
+            for (int i = 0; i < xyPositions.length - 2; i += 2) {
+                for (int j = i + 2; j < xyPositions.length; j += 2) {
+                    x = xyPositions[i] - xyPositions[j];
+                    y = xyPositions[i+1] - xyPositions[j+1];
+                    if(Math.abs(x) < 30.0f && Math.abs(y) < 30.0f){
+                        agentList.get(c).moveRight();
+                    }
                 }
-                if(Math.abs(agentList.get(i).getPosY() - agentList.get(j).getPosY()) < 30.0f){
-                    agentList.get(j).tryAvoidingCollision();
+                c++;
+            }
+        }
+
+        if(getHandlerID().equalsIgnoreCase("blue")){
+            for (int i = 0; i < xyPositions.length - 2; i += 2) {
+                for (int j = i + 2; j < xyPositions.length; j += 2) {
+                    x = xyPositions[i] - xyPositions[j];
+                    y = xyPositions[i+1] - xyPositions[j+1];
+                    if(Math.abs(x) < 30.0f && Math.abs(y) < 30.0f){
+                        agentList.get(c).moveLeft();
+                    }
                 }
+                c++;
+            }
+        }
+    }
+
+    public void checkCollisionOtherGroup(){
+        float x, y;
+        int c = 0;
+        if(getHandlerID().equalsIgnoreCase("orange")){
+            for(int i = 0; i < xyPositions.length - 1; i += 2){
+                for(int j = 0; j < oppositeXY.length - 1; j += 2){
+                    x = xyPositions[i] - oppositeXY[j];
+                    y = xyPositions[i+1] - oppositeXY[j+1];
+                    if(Math.abs(x) < 40 && Math.abs(y) < 40){
+                        agentList.get(c).moveUp();
+                    }
+                }
+                c++;
+            }
+        }
+
+        if(getHandlerID().equalsIgnoreCase("blue")){
+            for(int i = 0; i < xyPositions.length - 1; i += 2){
+                for(int j = 0; j < oppositeXY.length - 1; j += 2){
+                    x = xyPositions[i] - oppositeXY[j];
+                    y = xyPositions[i+1] - oppositeXY[j+1];
+                    if(Math.abs(x) < 40 && Math.abs(y) < 40){
+                        agentList.get(c).moveDown();
+                    }
+                }
+                c++;
             }
         }
     }
@@ -83,33 +127,66 @@ public class AgentHandler extends Thread {
         final String localhost = "127.0.0.1";
         final int PORT = 1337;
         boolean running = true;
-        //DataInputStream dinBoolean = null;
         DataOutputStream dData = null;
+        DataInputStream dinData = null;
         ObjectOutputStream doutObject = null;
+        ObjectInputStream dinObject = null;
         Socket clientSocket = null;
+        int numberOfHandlersConnected = 0;
 
         try {
             clientSocket = new Socket(localhost, PORT);
             doutObject = new ObjectOutputStream(clientSocket.getOutputStream());
-            //dinBoolean = new DataInputStream(clientSocket.getInputStream());
+            dinObject = new ObjectInputStream(clientSocket.getInputStream());
             dData = new DataOutputStream(clientSocket.getOutputStream());
+            dinData = new DataInputStream(clientSocket.getInputStream());
+
+            // Receive data package from Server ================================
+            DataPackage datapackage = (DataPackage) dinObject.readUnshared();
+            for (int i = 0; i < datapackage.getAmount(); i++){
+                Agent a = new Agent(datapackage.getID());
+                agentList.add(a);
+            }
+            this.handlerID = datapackage.getID();
+            System.out.println("Amount of agents created: " + agentList.size());
+            oppositeXY = new float[datapackage.getAmountOfOtherAgents() * 2];
+            //==================================================================
+            // Initiate arrays to hold positions for the first time.
+            fillList(agentList);
 
             while (running) {
 
                 Thread.sleep(100);
-                dData.writeUTF(getHandlerID()); // handlerID of agent handler.
-                fillList(agentList);
-                doutObject.writeUnshared(xyPositions);
+                if(numberOfHandlersConnected == 2) {
+                    checkCollisionSameGroup();
+                    checkCollisionOtherGroup();
+                    fillList(agentList);
+                    dData.writeUTF(getHandlerID()); // handlerID of agent handler.
+                    doutObject.writeUnshared(xyPositions);
+                    // Receive positions of the other agents:
+                    oppositeXY = (float[]) dinObject.readUnshared();
+                    System.out.println("X: " + oppositeXY[0] + " Y: " +
+                            oppositeXY[1]);
+                }
+                else {
+                    numberOfHandlersConnected = dinData.readInt();
+                    System.out.println("Number of handlers: " +
+                            numberOfHandlersConnected);
+                }
             }
-            closeConnections(clientSocket, doutObject, dData);
+            closeConnections(clientSocket, doutObject, dinObject, dData, dinData);
             System.out.println("######## AgentHandler is Terminating ########");
 
         } catch (IOException e) {
-            closeConnections(clientSocket, doutObject, dData);
-            System.out.println("Error - AgentHandler: " + e);
+            closeConnections(clientSocket, doutObject, dinObject, dData, dinData);
+            System.err.println("Error - AgentHandler: " + e);
+            e.printStackTrace();
+        }  catch (ClassNotFoundException e) {
+            closeConnections(clientSocket, doutObject, dinObject, dData, dinData);
+            System.err.println("Error - AgentHandler: " + e);
             e.printStackTrace();
         } catch (InterruptedException e) {
-            System.out.println("Error - AgentHandler: " + e);
+            closeConnections(clientSocket, doutObject, dinObject, dData, dinData);
             e.printStackTrace();
         }
     }
@@ -119,23 +196,31 @@ public class AgentHandler extends Thread {
      * run() function's while loop has finished.
      *
      * @param socket The socket corresponding to its handler.
-     * @param obj The object stream that the positions are sent through.
+     * @param doutObj The object stream that the positions are sent through.
+     * @param dinObj The object stream that receives positions from server.
      * @param dout A stream to send the ID of the handler to the server.
+     * @param din A stream to receive data from server.
      *
      */
-    private void closeConnections(Socket socket, ObjectOutputStream obj, DataOutputStream dout){
+    private void closeConnections(Socket socket, ObjectOutputStream doutObj,
+                                  ObjectInputStream dinObj,
+                                  DataOutputStream dout,
+                                  DataInputStream din){
         try{
             socket.close();
-            obj.close();
+            doutObj.close();
+            dinObj.close();
             dout.close();
+            din.close();
         }catch(IOException e){
-            System.out.println("Error - CloseConnection - AgentHandler: " + e);
+            System.err.println("Error - CloseConnection - AgentHandler: " + e);
             e.printStackTrace();
         }
     }
 
     /**
-     * Fills the position array with the current positions of all the agents before updating them.
+     * Fills the position array with the current positions of all the agents
+     * before updating them.
      * Also, before updating the positions, a collision check is made.
      *
      * @param agents A list containing all the agents a handler has.
@@ -147,7 +232,6 @@ public class AgentHandler extends Thread {
         for(int i = 0; i < agents.size(); i++){
             xyPositions[c] = agents.get(i).getPosX();
             xyPositions[c+1] = agents.get(i).getPosY();
-            collisionChecker();
             agents.get(i).moveToGoal();
             c += 2;
         }

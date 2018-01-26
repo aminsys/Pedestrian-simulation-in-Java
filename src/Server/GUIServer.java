@@ -1,6 +1,7 @@
 package Server;
 
 import Controller.AgentHandler;
+import Controller.DataPackage;
 import javafx.animation.AnimationTimer;
 import javafx.application.Application;
 import javafx.scene.Group;
@@ -24,8 +25,10 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * Purpose: The GUI server controls the simulation.
  * Buttons are used to: start a server, initiate agent handlers, start a simulation,
  * and pause it.
+ * <br>
  * Input fields are used to register the amount of agents desired to initiate before
  * initiating the agent handlers.
+ * <br>
  * The GUI server has an inner Server class that waits for TWO agent handlers to
  * connect, and another inner Server Listener class that receives data from
  * respective handler.
@@ -37,9 +40,10 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public class GUIServer extends Application{
 
     /**
-     * To prevent reading/ writing at the same time.
+     * A costume data type to pack in different data types to be sent to AgentHandlers.
      */
-    public ReadWriteLock lock = new ReentrantReadWriteLock();
+    public DataPackage datapackageBlue = null, datapackageOrange = null;
+    public static int counter = 0;
 
     /**
      * To store data received from handlers.
@@ -51,16 +55,17 @@ public class GUIServer extends Application{
      */
     private ArrayList<Circle> circlesOrange = new ArrayList<>();
     private ArrayList<Circle> circlesBlue = new ArrayList<>();
+    private ArrayList<ServerListener> connections = null;
 
     /**
      * Creating circlesOrange for the first time.
      */
     private boolean createCircles = true;
 
-    private AgentHandler aOrange, aBlue; // To create handlers directly from the server.
 
     /**
      * Here all parts of the application window are managed (Buttons, input fields, circles).
+     * <br>
      * The animation of the circles are also controlled here.
      *
      * @param window
@@ -130,20 +135,22 @@ public class GUIServer extends Application{
                 // Implementing some sort of a delay - Be nice to resources:
                 if(now - lastUpdate >= 250_000_000){
                     int c = 0;
-                    lock.readLock().lock();
-                    for(int i = 0; i < bluePositions.length; i += 2){
-                        circlesBlue.get(c).setCenterX(bluePositions[i]);
-                        circlesBlue.get(c).setCenterY(bluePositions[i+1]);
-                        c++;
+                    synchronized (bluePositions) {
+                        for (int i = 0; i < bluePositions.length; i += 2) {
+                            circlesBlue.get(c).setCenterX(bluePositions[i]);
+                            circlesBlue.get(c).setCenterY(bluePositions[i + 1]);
+                            c++;
+                        }
                     }
                     c = 0;
 
-                    for(int i = 0; i < orangePositions.length; i += 2){
-                        circlesOrange.get(c).setCenterX(orangePositions[i]);
-                        circlesOrange.get(c).setCenterY(orangePositions[i+1]);
-                        c++;
+                    synchronized (orangePositions) {
+                        for (int i = 0; i < orangePositions.length; i += 2) {
+                            circlesOrange.get(c).setCenterX(orangePositions[i]);
+                            circlesOrange.get(c).setCenterY(orangePositions[i + 1]);
+                            c++;
+                        }
                     }
-                    lock.readLock().unlock();
                     lastUpdate = now;
                 }
             }
@@ -161,18 +168,21 @@ public class GUIServer extends Application{
         startSim.setOnAction( e -> {
             // Creating circlesOrange:
             if (createCircles) {
-               lock.readLock().lock();
-               for (int i = 0; i < orangePositions.length; i += 2) {
-                   System.out.println("Array Orange X " + orangePositions[i] + " array Orange Y " + orangePositions[i+1]);
-                   circlesOrange.add(new Circle(orangePositions[i], orangePositions[i+1], 15, Color.ORANGE));
-               }
-               for(int i = 0; i < bluePositions.length; i += 2){
-                   System.out.println("Array Blue X " + bluePositions[i] + " array Blue Y " + bluePositions[i+1]);
-                   circlesBlue.add(new Circle(bluePositions[i], bluePositions[i+1], 10, Color.BLUE));
-               }
+                synchronized (orangePositions) {
+                    for (int i = 0; i < orangePositions.length; i += 2) {
+                        System.out.println("Array Orange X " + orangePositions[i] + " array Orange Y " + orangePositions[i + 1]);
+                        circlesOrange.add(new Circle(orangePositions[i], orangePositions[i + 1], 15, Color.ORANGE));
+                    }
+                }
+
+                synchronized (bluePositions) {
+                    for (int i = 0; i < bluePositions.length; i += 2) {
+                        System.out.println("Array Blue X " + bluePositions[i] + " array Blue Y " + bluePositions[i + 1]);
+                        circlesBlue.add(new Circle(bluePositions[i], bluePositions[i + 1], 10, Color.BLUE));
+                    }
+                }
                root.getChildren().addAll(circlesOrange);
                root.getChildren().addAll(circlesBlue);
-               lock.readLock().unlock();
 
             }
             System.out.println("Blue circle size: " + circlesBlue.size());
@@ -191,13 +201,13 @@ public class GUIServer extends Application{
 
         // To create agent instances, and handler threads over the network before starting the simulation.
         initiateAgents.setOnAction( e -> {
-            aBlue = new AgentHandler("Blue", Integer.parseInt(client1Input.getText()), Color.BLUE);
-            aOrange = new AgentHandler("Orange", Integer.parseInt(client2Input.getText()), Color.ORANGE);
+            //aBlue = new AgentHandler("Blue", Integer.parseInt(client1Input.getText()), Color.BLUE);
+            //aOrange = new AgentHandler("Orange", Integer.parseInt(client2Input.getText()), Color.ORANGE);
+            datapackageBlue = new DataPackage("blue", Integer.parseInt(client1Input.getText()), Integer.parseInt(client2Input.getText()));
+            datapackageOrange = new DataPackage("orange", Integer.parseInt(client2Input.getText()), Integer.parseInt(client1Input.getText()));
 
             bluePositions = new float[Integer.parseInt(client1Input.getText()) * 2];
             orangePositions = new float[Integer.parseInt(client2Input.getText()) * 2];
-            aBlue.start();
-            aOrange.start();
 
             initiateAgents.setDisable(true);
             client1Input.setDisable(true);
@@ -231,19 +241,23 @@ public class GUIServer extends Application{
          */
         @Override
         public void run() {
-            int clientCounter = 0;
+            //int clientCounter = 0;
             try {
                 mServerSocket = new ServerSocket(1337);
+                connections = new ArrayList<ServerListener>();
 
-                while (clientCounter < 2) {
+                while (counter < 2) {
                     System.out.println("Waiting for a connection...");
                     Socket s = mServerSocket.accept();
                     System.out.println("Connection established");
+                    counter++;
                     // Start listening on connection:
                     mServerListener = new ServerListener(s);
+                    connections.add(mServerListener);
                     mServerListener.start();
-                    clientCounter++;
                 }
+                mServerSocket.close();
+
             }catch(IOException e){
                 System.out.println("Server: Error: " + e);
                 e.printStackTrace();
@@ -254,6 +268,7 @@ public class GUIServer extends Application{
 
     /**
      * Purpose: Receive position data from handlers that were connected via the Server class.
+     * <br>
      * The data received are directly stored into global variables.
      *
      */
@@ -261,7 +276,9 @@ public class GUIServer extends Application{
 
         private boolean serverRunning = true;
         private ObjectInputStream dinObject = null;
+        private ObjectOutputStream doutObject = null;
         private DataInputStream dinData = null;
+        private DataOutputStream doutData = null;
         private Socket socket = null;
 
         /**
@@ -275,6 +292,20 @@ public class GUIServer extends Application{
         }
 
         /**
+         * A method that sends to all connected handlers how many of them are connected.
+         *
+         * @param n
+         */
+        public void sendToAllHandlers(int n){
+            try{
+            doutData.writeInt(n);
+            } catch(IOException e){
+                System.err.println("Error - ServerListener: " + e);
+                e.printStackTrace();
+            }
+        }
+
+        /**
          * A run() function that receives array data containing positions from a handler
          * and saves it into a global variable. It also receives a string containing the
          * ID of the handler.
@@ -283,43 +314,62 @@ public class GUIServer extends Application{
         @Override
         public void run() {
             String ID;
+
             try {
 
                 dinObject = new ObjectInputStream(socket.getInputStream());
+                doutObject = new ObjectOutputStream(socket.getOutputStream());
                 dinData = new DataInputStream(socket.getInputStream());
+                doutData = new DataOutputStream(socket.getOutputStream());
+
+                // If the first handler is connected.
+                if(counter == 1){
+                    doutObject.writeUnshared(datapackageBlue);
+                    System.out.println("Data package for blue is sent!");
+                }
+
+                // If the second handler has connected.
+                else if(counter == 2){
+                    // This data package contains all the information it needs about number of
+                    // agents, their color, and the amount of agents that the other handler has.
+                    doutObject.writeUnshared(datapackageOrange);
+                    System.out.println("Data package for orange is sent!");
+                }
+
+                // Broadcast to all handlers the number of them connected.
+                for (int i = 0; i < connections.size(); ++i){
+                    connections.get(i).sendToAllHandlers(counter);
+                }
 
                 while (serverRunning) {
                     try {
-                        Thread.sleep(100);
+                        ID = dinData.readUTF();
+                        switch (ID){
+                            case "blue":
+                                synchronized (bluePositions){
+                                    bluePositions = (float[]) dinObject.readUnshared();
+                                    doutObject.writeUnshared(orangePositions);
+                                }
+                                break;
 
-                        if((ID = dinData.readUTF()) != null) {
-                            if (ID.equals(aBlue.getHandlerID())) {
-                                lock.writeLock().lock();
-                                bluePositions = (float[]) dinObject.readUnshared();
-                                lock.writeLock().unlock();
-                            } else if (ID.equals(aOrange.getHandlerID())) {
-                                lock.writeLock().lock();
-                                orangePositions = (float[]) dinObject.readUnshared();
-                                lock.writeLock().unlock();
-                            } else {
-                                System.out.println("Waiting for data from Handler.");
-                            }
-                        }
-                        else{
-                            System.out.println("Nothing was sent to server.");
+                            case "orange":
+                                synchronized (orangePositions){
+                                    orangePositions = (float[]) dinObject.readUnshared();
+                                    doutObject.writeUnshared(bluePositions);
+                                }
+                                break;
+
+                            default:
+                                break;
                         }
                     }
                     catch(EOFException eof){
                         closeThread();
-                        System.out.println("Error - ServerListener - readObject: " + eof);
+                        System.err.println("Error - ServerListener - readObject: " + eof);
                         eof.printStackTrace();
                     } catch (ClassNotFoundException e) {
                         closeThread();
-                        System.out.println("Error - ServerListener - readObject: " + e);
-                        e.printStackTrace();
-                    } catch (InterruptedException e) {
-                        closeThread();
-                        System.out.println("Error - ServerListener - Sleep Thread: " + e);
+                        System.err.println("Error - ServerListener - readObject: " + e);
                         e.printStackTrace();
                     }
                 }
@@ -328,7 +378,7 @@ public class GUIServer extends Application{
             }
             catch (IOException e) {
                 closeThread();
-                System.out.println("Error - ServerListener: " + e);
+                System.err.println("Error - ServerListener: " + e);
                 e.printStackTrace();
             }
         } // run
@@ -344,9 +394,9 @@ public class GUIServer extends Application{
                 socket.close();
                 dinObject.close();
                 dinData.close();
-                //doutBoolean.close();
+                doutObject.close();
             }catch(IOException e){
-                System.out.println("Error - closeThread - ServerListener: " + e);
+                System.err.println("Error - closeThread - ServerListener: " + e);
                 e.printStackTrace();
             }
         }
