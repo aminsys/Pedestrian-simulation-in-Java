@@ -1,11 +1,13 @@
 package Controller;
 
 import ClientModel.Agent;
+import ClientModel.DataPackage;
 
 import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 
 /**
@@ -53,7 +55,7 @@ public class AgentHandler extends Thread {
      * aren't checked again.
      *
      */
-    public void checkCollisionSameGroup(){
+    private void checkCollisionSameGroup(){
 
         int c = 0;
         float x, y;
@@ -63,8 +65,8 @@ public class AgentHandler extends Thread {
                 for (int j = i + 2; j < xyPositions.length; j += 2) {
                     x = xyPositions[i] - xyPositions[j];
                     y = xyPositions[i+1] - xyPositions[j+1];
-                    if(Math.abs(x) < 30.0f && Math.abs(y) < 30.0f){
-                        agentList.get(c).moveRight();
+                    if(Math.abs(x) < 50.0f && Math.abs(y) < 50.0f){
+                        agentList.get(c).moveUp();
                     }
                 }
                 c++;
@@ -76,8 +78,8 @@ public class AgentHandler extends Thread {
                 for (int j = i + 2; j < xyPositions.length; j += 2) {
                     x = xyPositions[i] - xyPositions[j];
                     y = xyPositions[i+1] - xyPositions[j+1];
-                    if(Math.abs(x) < 30.0f && Math.abs(y) < 30.0f){
-                        agentList.get(c).moveLeft();
+                    if(Math.abs(x) < 50.0f && Math.abs(y) < 50.0f){
+                        agentList.get(c).moveDown();
                     }
                 }
                 c++;
@@ -85,7 +87,7 @@ public class AgentHandler extends Thread {
         }
     }
 
-    public void checkCollisionOtherGroup(){
+    private void checkCollisionOtherGroup(){
         float x, y;
         int c = 0;
         if(getHandlerID().equalsIgnoreCase("orange")){
@@ -93,10 +95,11 @@ public class AgentHandler extends Thread {
                 for(int j = 0; j < oppositeXY.length - 1; j += 2){
                     x = xyPositions[i] - oppositeXY[j];
                     y = xyPositions[i+1] - oppositeXY[j+1];
-                    if(Math.abs(x) < 40 && Math.abs(y) < 40){
-                        agentList.get(c).moveUp();
+                    if(Math.abs(x) < 100.0f && Math.abs(y) < 50.0f){
+                        agentList.get(c).moveUpAndBack();
                     }
                 }
+                agentList.get(c).moveToGoal();
                 c++;
             }
         }
@@ -106,10 +109,11 @@ public class AgentHandler extends Thread {
                 for(int j = 0; j < oppositeXY.length - 1; j += 2){
                     x = xyPositions[i] - oppositeXY[j];
                     y = xyPositions[i+1] - oppositeXY[j+1];
-                    if(Math.abs(x) < 40 && Math.abs(y) < 40){
-                        agentList.get(c).moveDown();
+                    if(Math.abs(x) < 100.0f && Math.abs(y) < 50.0f){
+                        agentList.get(c).moveDownAndBack();
                     }
                 }
+                agentList.get(c).moveToGoal();
                 c++;
             }
         }
@@ -156,17 +160,17 @@ public class AgentHandler extends Thread {
 
             while (running) {
 
-                Thread.sleep(100);
+                Thread.sleep(50);
                 if(numberOfHandlersConnected == 2) {
                     checkCollisionSameGroup();
                     checkCollisionOtherGroup();
-                    fillList(agentList);
+                    fillList(agentList); // New data to be sent.
                     dData.writeUTF(getHandlerID()); // handlerID of agent handler.
                     doutObject.writeUnshared(xyPositions);
                     // Receive positions of the other agents:
                     oppositeXY = (float[]) dinObject.readUnshared();
-                    System.out.println("X: " + oppositeXY[0] + " Y: " +
-                            oppositeXY[1]);
+                    /*System.out.println("X: " + oppositeXY[0] + " Y: " +
+                            oppositeXY[1]);*/
                 }
                 else {
                     numberOfHandlersConnected = dinData.readInt();
@@ -228,11 +232,32 @@ public class AgentHandler extends Thread {
      */
     private void fillList(List<Agent> agents){
         int c = 0;
+        float x;
         xyPositions = new float[agents.size() * 2];
         for(int i = 0; i < agents.size(); i++){
+
+            x = agents.get(i).getPosX();
+
+            // Check if goal reached.
+            if(x < -10.0f){
+                agents.get(i).setPosX(800.0f);
+                agents.get(i).setPosY(ThreadLocalRandom.current().nextFloat()
+                        * 450.f + 120.0f);
+                agents.get(i).setGoalY(ThreadLocalRandom.current().nextFloat
+                        () * 450.f + 120.0f);
+            }
+
+            // Check if goal reached.
+            else if(x > 810.0f){
+                agents.get(i).setPosX(0.0f);
+                agents.get(i).setPosY(ThreadLocalRandom.current().nextFloat()
+                        * 450.f + 120.0f);
+                agents.get(i).setGoalY(ThreadLocalRandom.current().nextFloat
+                        () * 450.f + 120.0f);
+            }
+
             xyPositions[c] = agents.get(i).getPosX();
             xyPositions[c+1] = agents.get(i).getPosY();
-            agents.get(i).moveToGoal();
             c += 2;
         }
     }

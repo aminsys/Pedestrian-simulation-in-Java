@@ -1,7 +1,7 @@
 package Server;
 
-import Controller.AgentHandler;
-import Controller.DataPackage;
+import ClientModel.Agent;
+import ClientModel.DataPackage;
 import javafx.animation.AnimationTimer;
 import javafx.application.Application;
 import javafx.scene.Group;
@@ -18,8 +18,6 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * Purpose: The GUI server controls the simulation.

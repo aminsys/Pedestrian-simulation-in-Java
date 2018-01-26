@@ -1,5 +1,6 @@
 package ClientModel;
 
+import java.io.Serializable;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -28,13 +29,13 @@ public class Agent{
         if(colorID.equalsIgnoreCase("blue")){
             // Start at the left of the window.
             this.posX = 0.0f;
-            this.goalX = 800.0f;
+            this.goalX = 812.0f;
         }
 
         else if(colorID.equalsIgnoreCase("orange")){
             // Start at the right of the window.
             this.posX = 800.0f;
-            this.goalX = 0.0f;
+            this.goalX = -12.0f;
         }
 
         else {
@@ -61,6 +62,10 @@ public class Agent{
         return this.posX;
     }
 
+    public void setPosX(float posX) {
+        this.posX = posX;
+    }
+
     public void setGoalX(float goalX) {
         this.goalX = goalX;
     }
@@ -78,6 +83,10 @@ public class Agent{
         return this.posY;
     }
 
+    public void setPosY(float posY) {
+        this.posY = posY;
+    }
+
     /**
      * Moves an Agent faster towards its goal destination.
      *
@@ -88,15 +97,26 @@ public class Agent{
     }
 
     public void moveLeft(){
-        this.posX--;
+        this.posX -= this.speed;
     }
 
     public void moveRight(){
-        this.posX++;
+        this.posX += this.speed;
     }
 
     public void moveDown() {
         this.posY++;
+    }
+
+    public void moveDownAndBack(){
+        this.posY++;
+        this.posX--;
+    }
+
+    // This is special for orange agents.
+    public void moveUpAndBack(){
+        this.posY--;
+        this.posX++;
     }
 
     /**
@@ -105,16 +125,16 @@ public class Agent{
      */
     public void moveToGoal(){
         if(this.posX < this.goalX){
-            this.posX++;
+            this.posX += this.speed;
         }
         if(this.posX > this.goalX){
-            this.posX--; // -= this.speed;
+            this.posX -= this.speed;
         }
         if(this.posY < this.goalY){
-            this.posY++; //+= this.speed;
+            this.posY += this.speed;
         }
         if(this.posY > this.goalY){
-            this.posY--; //-= this.speed;
+            this.posY -= this.speed;
         }
     }
 

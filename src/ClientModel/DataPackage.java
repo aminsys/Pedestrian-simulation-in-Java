@@ -1,6 +1,4 @@
-package Controller;
-
-import javafx.scene.paint.Color;
+package ClientModel;
 
 import java.io.Serializable;
 
@@ -9,7 +7,7 @@ import java.io.Serializable;
  *
  */
 
-public class DataPackage implements Serializable{
+public class DataPackage implements Serializable {
     private int amount, amountOfOtherAgents;
     private String ID;
 
