@@ -6,8 +6,8 @@ import java.io.Serializable;
  * Purpose: This class serves as a structure that contains initial information
  * to be sent to the agent handlers from the Server class.
  *
- * @Author Amin Yassin
- * @Version 2.0 29/01/2018
+ * @author Amin Yassin
+ * @version 2.0 29/01/2018
  */
 public class DataPackage implements Serializable {
     private int amount, amountOfOtherAgents;

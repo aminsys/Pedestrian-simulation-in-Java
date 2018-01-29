@@ -4,8 +4,8 @@ package Controller;
  * Purpose: This class serves as a representation of a program that can be
  * run independently from the the server program.
  *
- * @Author Amin Yassin
- * @Version 2.0 29/01/2018
+ * @author Amin Yassin
+ * @version 2.0 29/01/2018
  */
 public class ClientProgram {
 

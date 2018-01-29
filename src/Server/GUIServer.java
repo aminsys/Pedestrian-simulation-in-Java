@@ -67,7 +67,8 @@ public class GUIServer extends Application{
 
 
     /**
-     * Here all parts of the application window are managed (Buttons, input fields, circles).
+     * Here all parts of the application window are managed (Buttons, input
+     * fields, circles).
      * <br>
      * The animation of the circles are also controlled here.
      *
@@ -94,7 +95,7 @@ public class GUIServer extends Application{
         startSim.setDisable(true);
         Button stopSim = new Button("Stop sim");
         stopSim.setDisable(true);
-        Button initiateAgents = new Button("Start Agents");
+        Button initiateAgents = new Button("Init Data");
         initiateAgents.setDisable(true);
 
         startServer.setLayoutX(20.0);
