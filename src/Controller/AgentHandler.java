@@ -65,8 +65,14 @@ public class AgentHandler extends Thread {
                 for (int j = i + 2; j < xyPositions.length; j += 2) {
                     x = xyPositions[i] - xyPositions[j];
                     y = xyPositions[i+1] - xyPositions[j+1];
-                    if(Math.abs(x) < 50.0f && Math.abs(y) < 50.0f){
-                        agentList.get(c).moveUp();
+
+                    if(Math.abs(x) < 30.0f && Math.abs(y) < 30.0f){
+                        if(Math.signum(y) == -1){
+                            agentList.get(c).moveUp();
+                        }
+                        else if(Math.signum(y) == 1){
+                            agentList.get(c).moveDown();
+                        }
                     }
                 }
                 c++;
@@ -78,8 +84,14 @@ public class AgentHandler extends Thread {
                 for (int j = i + 2; j < xyPositions.length; j += 2) {
                     x = xyPositions[i] - xyPositions[j];
                     y = xyPositions[i+1] - xyPositions[j+1];
-                    if(Math.abs(x) < 50.0f && Math.abs(y) < 50.0f){
-                        agentList.get(c).moveDown();
+
+                    if(Math.abs(x) < 30.0f && Math.abs(y) < 30.0f){
+                        if(Math.signum(y) == -1){
+                            agentList.get(c).moveUp();
+                        }
+                        else if(Math.signum(y) == 1){
+                            agentList.get(c).moveDown();
+                        }
                     }
                 }
                 c++;
@@ -91,12 +103,18 @@ public class AgentHandler extends Thread {
         float x, y;
         int c = 0;
         if(getHandlerID().equalsIgnoreCase("orange")){
-            for(int i = 0; i < xyPositions.length - 1; i += 2){
-                for(int j = 0; j < oppositeXY.length - 1; j += 2){
+            for(int i = 0; i < xyPositions.length; i += 2){
+                for(int j = 0; j < oppositeXY.length; j += 2){
                     x = xyPositions[i] - oppositeXY[j];
                     y = xyPositions[i+1] - oppositeXY[j+1];
-                    if(Math.abs(x) < 100.0f && Math.abs(y) < 50.0f){
-                        agentList.get(c).moveUpAndBack();
+
+                    if(Math.abs(x) < 40.0f && Math.abs(y) < 40.0f){
+                        if(Math.signum(y) == -1){
+                            agentList.get(c).moveUpAndBack();
+                        }
+                        else if(Math.signum(y) == 1){
+                            agentList.get(c).moveDownAndBack();
+                        }
                     }
                 }
                 agentList.get(c).moveToGoal();
@@ -105,12 +123,18 @@ public class AgentHandler extends Thread {
         }
 
         if(getHandlerID().equalsIgnoreCase("blue")){
-            for(int i = 0; i < xyPositions.length - 1; i += 2){
-                for(int j = 0; j < oppositeXY.length - 1; j += 2){
+            for(int i = 0; i < xyPositions.length ; i += 2){
+                for(int j = 0; j < oppositeXY.length; j += 2){
                     x = xyPositions[i] - oppositeXY[j];
                     y = xyPositions[i+1] - oppositeXY[j+1];
-                    if(Math.abs(x) < 100.0f && Math.abs(y) < 50.0f){
-                        agentList.get(c).moveDownAndBack();
+
+                    if(Math.abs(x) < 40.0f && Math.abs(y) < 40.0f){
+                        if(Math.signum(y) == -1){
+                            agentList.get(c).moveUpAndForth();
+                        }
+                        else if(Math.signum(y) == 1){
+                            agentList.get(c).moveDownAndForth();
+                        }
                     }
                 }
                 agentList.get(c).moveToGoal();
@@ -239,7 +263,8 @@ public class AgentHandler extends Thread {
             x = agents.get(i).getPosX();
 
             // Check if goal reached.
-            if(x < -10.0f){
+            if(x < -10.0f &&
+                    getHandlerID().equalsIgnoreCase("orange")){
                 agents.get(i).setPosX(800.0f);
                 agents.get(i).setPosY(ThreadLocalRandom.current().nextFloat()
                         * 450.f + 120.0f);
@@ -248,7 +273,8 @@ public class AgentHandler extends Thread {
             }
 
             // Check if goal reached.
-            else if(x > 810.0f){
+            else if(x > 810.0f &&
+                    getHandlerID().equalsIgnoreCase("blue")){
                 agents.get(i).setPosX(0.0f);
                 agents.get(i).setPosY(ThreadLocalRandom.current().nextFloat()
                         * 450.f + 120.0f);

@@ -121,7 +121,8 @@ public class GUIServer extends Application{
 
         // Add all elements (fields, labels, etc) to the root object.
         root.getChildren().addAll(line1, startServer, startSim,
-                stopSim, initiateAgents, client1, client2, client1Input, client2Input);
+                stopSim, initiateAgents, client1, client2, client1Input,
+                client2Input);
 
         // The animation of the agents happens here.
         AnimationTimer at = new AnimationTimer() {
@@ -168,15 +169,20 @@ public class GUIServer extends Application{
             if (createCircles) {
                 synchronized (orangePositions) {
                     for (int i = 0; i < orangePositions.length; i += 2) {
-                        System.out.println("Array Orange X " + orangePositions[i] + " array Orange Y " + orangePositions[i + 1]);
-                        circlesOrange.add(new Circle(orangePositions[i], orangePositions[i + 1], 15, Color.ORANGE));
+                        System.out.println("Array Orange X " +
+                                orangePositions[i] + " array Orange Y " +
+                                orangePositions[i + 1]);
+                        circlesOrange.add(new Circle(orangePositions[i],
+                                orangePositions[i + 1], 15, Color.ORANGE));
                     }
                 }
 
                 synchronized (bluePositions) {
                     for (int i = 0; i < bluePositions.length; i += 2) {
-                        System.out.println("Array Blue X " + bluePositions[i] + " array Blue Y " + bluePositions[i + 1]);
-                        circlesBlue.add(new Circle(bluePositions[i], bluePositions[i + 1], 10, Color.BLUE));
+                        System.out.println("Array Blue X " + bluePositions[i]
+                                + " array Blue Y " + bluePositions[i + 1]);
+                        circlesBlue.add(new Circle(bluePositions[i],
+                                bluePositions[i + 1], 15, Color.BLUE));
                     }
                 }
                root.getChildren().addAll(circlesOrange);
@@ -184,28 +190,45 @@ public class GUIServer extends Application{
 
             }
             System.out.println("Blue circle size: " + circlesBlue.size());
-            createCircles = false; // With this, circles aren't going to be created again.
+            // With this, circles aren't going to be created again.
+            createCircles = false;
             at.start();
             startSim.setDisable(true);
             stopSim.setDisable(false);
         });
 
-        // To stop/   the simulation: Need to check on how to pause the threads too, client's especially.
+        // To stop the simulation: Need to check on how to pause the threads
+        // too, client's especially.
         stopSim.setOnAction( e -> {
             at.stop();
             stopSim.setDisable(true);
             startSim.setDisable(false);
         });
 
-        // To create agent instances, and handler threads over the network before starting the simulation.
+        // To create agent instances, and handler threads over the network
+        // before starting the simulation.
         initiateAgents.setOnAction( e -> {
             //aBlue = new AgentHandler("Blue", Integer.parseInt(client1Input.getText()), Color.BLUE);
             //aOrange = new AgentHandler("Orange", Integer.parseInt(client2Input.getText()), Color.ORANGE);
-            datapackageBlue = new DataPackage("blue", Integer.parseInt(client1Input.getText()), Integer.parseInt(client2Input.getText()));
-            datapackageOrange = new DataPackage("orange", Integer.parseInt(client2Input.getText()), Integer.parseInt(client1Input.getText()));
-
-            bluePositions = new float[Integer.parseInt(client1Input.getText()) * 2];
-            orangePositions = new float[Integer.parseInt(client2Input.getText()) * 2];
+            if(client1Input.getText().isEmpty() && client2Input.getText()
+                    .isEmpty()){
+                datapackageBlue = new DataPackage("blue", 4, 4);
+                datapackageOrange = new DataPackage("orange", 4,4);
+                bluePositions = new float[8];
+                orangePositions = new float[8];
+            }
+            else {
+                datapackageBlue = new DataPackage("blue", Integer.parseInt
+                        (client1Input.getText()), Integer.parseInt
+                        (client2Input.getText()));
+                datapackageOrange = new DataPackage("orange", Integer
+                        .parseInt(client2Input.getText()), Integer.parseInt
+                        (client1Input.getText()));
+                bluePositions = new float[Integer.parseInt(client1Input.getText
+                        ()) * 2];
+                orangePositions = new float[Integer.parseInt(client2Input.getText
+                        ()) * 2];
+            }
 
             initiateAgents.setDisable(true);
             client1Input.setDisable(true);
@@ -265,7 +288,8 @@ public class GUIServer extends Application{
     }
 
     /**
-     * Purpose: Receive position data from handlers that were connected via the Server class.
+     * Purpose: Receive position data from handlers that were connected via
+     * the Server class.
      * <br>
      * The data received are directly stored into global variables.
      *

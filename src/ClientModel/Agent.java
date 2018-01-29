@@ -46,7 +46,7 @@ public class Agent{
 
         this.posY = ThreadLocalRandom.current().nextFloat() * 450.0f + 120.0f;
         this.goalY = ThreadLocalRandom.current().nextFloat() * 450.0f + 120.0f;
-        this.speed = ThreadLocalRandom.current().nextFloat();
+        this.speed = ThreadLocalRandom.current().nextFloat() + 0.1f;
 
         System.out.println("(x, y, goalX, goalY): (" + this.posX + ' ' +
                 this.posY + ' ' + this.goalX + ' ' + this.goalY + ')');
@@ -87,11 +87,6 @@ public class Agent{
         this.posY = posY;
     }
 
-    /**
-     * Moves an Agent faster towards its goal destination.
-     *
-     */
-
     public void moveUp(){
         this.posY--;
     }
@@ -109,14 +104,23 @@ public class Agent{
     }
 
     public void moveDownAndBack(){
-        this.posY++;
-        this.posX--;
+        this.posY += 2.5f;
+        this.posX -= this.speed;
     }
 
-    // This is special for orange agents.
     public void moveUpAndBack(){
-        this.posY--;
-        this.posX++;
+        this.posY -= 2.5f;
+        this.posX -= this.speed;
+    }
+
+    public void moveUpAndForth(){
+        this.posY -= 2.5f;
+        this.posX += this.speed;
+    }
+
+    public void moveDownAndForth(){
+        this.posY += 2.5f;
+        this.posX += this.speed;
     }
 
     /**
@@ -125,16 +129,16 @@ public class Agent{
      */
     public void moveToGoal(){
         if(this.posX < this.goalX){
-            this.posX += this.speed;
+            this.posX += this.speed * 2.0f;
         }
         if(this.posX > this.goalX){
-            this.posX -= this.speed;
+            this.posX -= this.speed * 2.0f;
         }
         if(this.posY < this.goalY){
-            this.posY += this.speed;
+            this.posY += this.speed * 2.0f;
         }
         if(this.posY > this.goalY){
-            this.posY -= this.speed;
+            this.posY -= this.speed * 2.0f;
         }
     }
 
