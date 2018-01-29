@@ -11,13 +11,17 @@ import java.util.concurrent.ThreadLocalRandom;
 
 
 /**
- * Purpose: A thread class that can be started via the server simulator.
- * AgentHandler manages a group of agents that have the same color.
- * An AgentHandler checks for collisions, updates the group's positions, and
- * sends position data over a socket to the server.
+ * Purpose: A class that represents an instance of agent handler.
+ * An agent handler is where all agents of the same colour are handled;
+ * Collision checking amongst the same agents and against the others,
+ * updating actual positions of the corresponding agents, respawn at new
+ * positions, etc.
+ * <br>
+ * The positions of the agents are sent via this class, also, it receives the
+ * positions of the opposite agents' positions.
  *
  * @author Amin Yassin
- * @version 1.0 03/01/2018
+ * @version 2.0 29/01/2018
  *
  */
 public class AgentHandler extends Thread {
@@ -26,18 +30,6 @@ public class AgentHandler extends Thread {
     private String handlerID;
     private float[] xyPositions;
     private float[] oppositeXY;
-
-    /**
-     * A constructor of the AgentHandler.
-     * <br>
-     * The handler ID is specified by the client that will initiate the handlers.
-     *
-     * @param ID
-     */
-    /*public AgentHandler(String ID){
-        this.handlerID = ID;
-    }*/
-
 
     /**
      * A getter function that returns the ID of the handler.
@@ -50,7 +42,9 @@ public class AgentHandler extends Thread {
     }
 
     /**
-     * Checks the distance difference between agents in the same group.
+     * Checks the distance difference between agents in the same group, and
+     * thus, if one is in collision direction, it tries to make space for the
+     * other agent to pass by.
      * The function is optimized so that agents that were already checked
      * aren't checked again.
      *
@@ -66,12 +60,12 @@ public class AgentHandler extends Thread {
                     x = xyPositions[i] - xyPositions[j];
                     y = xyPositions[i+1] - xyPositions[j+1];
 
-                    if(Math.abs(x) < 30.0f && Math.abs(y) < 30.0f){
+                    if(Math.abs(x) < 50.0f && Math.abs(y) < 50.0f){
                         if(Math.signum(y) == -1){
-                            agentList.get(c).moveUp();
+                            agentList.get(c).moveUpAndForth();
                         }
                         else if(Math.signum(y) == 1){
-                            agentList.get(c).moveDown();
+                            agentList.get(c).moveDownAndForth();
                         }
                     }
                 }
@@ -85,12 +79,12 @@ public class AgentHandler extends Thread {
                     x = xyPositions[i] - xyPositions[j];
                     y = xyPositions[i+1] - xyPositions[j+1];
 
-                    if(Math.abs(x) < 30.0f && Math.abs(y) < 30.0f){
+                    if(Math.abs(x) < 50.0f && Math.abs(y) < 50.0f){
                         if(Math.signum(y) == -1){
-                            agentList.get(c).moveUp();
+                            agentList.get(c).moveUpAndBack();
                         }
                         else if(Math.signum(y) == 1){
-                            agentList.get(c).moveDown();
+                            agentList.get(c).moveDownAndBack();
                         }
                     }
                 }
@@ -99,6 +93,12 @@ public class AgentHandler extends Thread {
         }
     }
 
+    /**
+     * This method checks all of opposite agents' positions and once they are
+     * in range of each other, they try avoiding collision by stepping to the
+     * right or left depending on orientation.
+     *
+     */
     private void checkCollisionOtherGroup(){
         float x, y;
         int c = 0;
@@ -145,7 +145,11 @@ public class AgentHandler extends Thread {
 
     /**
      * Run method for the class. Connection to the server is established here.
-     * Values are sent from this function to the server.
+     * Once connection is established, this instance receives a data package
+     * containing information about this instance and the opposite instance
+     * of the same class; number of agents for each instance, colour etc.
+     * Coordinates are then sent from this function to the server and
+     * opposite agents' coordinates are received to check for collisions.
      *
      */
     @Override
@@ -188,15 +192,15 @@ public class AgentHandler extends Thread {
                 if(numberOfHandlersConnected == 2) {
                     checkCollisionSameGroup();
                     checkCollisionOtherGroup();
-                    fillList(agentList); // New data to be sent.
-                    dData.writeUTF(getHandlerID()); // handlerID of agent handler.
+                    fillList(agentList);
+                    dData.writeUTF(getHandlerID());
                     doutObject.writeUnshared(xyPositions);
+
                     // Receive positions of the other agents:
                     oppositeXY = (float[]) dinObject.readUnshared();
-                    /*System.out.println("X: " + oppositeXY[0] + " Y: " +
-                            oppositeXY[1]);*/
                 }
                 else {
+                    // This block is only entered twice.
                     numberOfHandlersConnected = dinData.readInt();
                     System.out.println("Number of handlers: " +
                             numberOfHandlersConnected);
@@ -247,11 +251,13 @@ public class AgentHandler extends Thread {
     }
 
     /**
-     * Fills the position array with the current positions of all the agents
-     * before updating them.
-     * Also, before updating the positions, a collision check is made.
+     * Fills the position array with the current positions of all the relevant
+     * agents before updating them.
+     * Also, if an agent has reached its goal, new start and goal positions
+     * will be assigned to the same agent; As to simulate the spawning of a
+     * new agent.
      *
-     * @param agents A list containing all the agents a handler has.
+     * @param agents A list containing all the agents a handler instance has.
      *
      */
     private void fillList(List<Agent> agents){

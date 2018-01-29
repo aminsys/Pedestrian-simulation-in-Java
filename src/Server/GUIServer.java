@@ -32,13 +32,14 @@ import java.util.ArrayList;
  * respective handler.
  *
  * @author Amin Yassin
- * @version 1.0 03/01/2018
+ * @version 2.0 29/01/2018
  *
  */
 public class GUIServer extends Application{
 
     /**
-     * A costume data type to pack in different data types to be sent to AgentHandlers.
+     * A costume data type to pack in different data types to be sent to
+     * AgentHandlers.
      */
     public DataPackage datapackageBlue = null, datapackageOrange = null;
     public static int counter = 0;
@@ -49,7 +50,8 @@ public class GUIServer extends Application{
     public float[] bluePositions, orangePositions;
 
     /**
-     * To store the representations of agents in ArrayLists.
+     * To store the representations of agents in ArrayLists. Also, to store
+     * all connections to the server.
      */
     private ArrayList<Circle> circlesOrange = new ArrayList<>();
     private ArrayList<Circle> circlesBlue = new ArrayList<>();
@@ -60,13 +62,16 @@ public class GUIServer extends Application{
      */
     private boolean createCircles = true;
 
+    // To synchronize between server listener and AnimationTimer:
+    public static boolean doneRendering = true;
+
 
     /**
      * Here all parts of the application window are managed (Buttons, input fields, circles).
      * <br>
      * The animation of the circles are also controlled here.
      *
-     * @param window
+     * @param window An argument for the stage of the JavaFX application.
      * @throws Exception
      */
     public void start(Stage window) throws Exception {
@@ -314,9 +319,11 @@ public class GUIServer extends Application{
         }
 
         /**
-         * A method that sends to all connected handlers how many of them are connected.
+         * A method that sends to all connected handlers how many of them
+         * are connected.
          *
-         * @param n
+         * @param n Representing the number of connections that has been
+         *          established.
          */
         public void sendToAllHandlers(int n){
             try{
@@ -328,9 +335,9 @@ public class GUIServer extends Application{
         }
 
         /**
-         * A run() function that receives array data containing positions from a handler
-         * and saves it into a global variable. It also receives a string containing the
-         * ID of the handler.
+         * A run() function that receives array data containing positions
+         * from a handler and saves it into a global variable. It also
+         * receives a string containing the ID of the handler.
          *
          */
         @Override
@@ -352,8 +359,9 @@ public class GUIServer extends Application{
 
                 // If the second handler has connected.
                 else if(counter == 2){
-                    // This data package contains all the information it needs about number of
-                    // agents, their color, and the amount of agents that the other handler has.
+                    // This data package contains all the information it
+                    // needs about number of agents, their colour, and the
+                    // amount of agents that the other handler has.
                     doutObject.writeUnshared(datapackageOrange);
                     System.out.println("Data package for orange is sent!");
                 }
@@ -369,34 +377,41 @@ public class GUIServer extends Application{
                         switch (ID){
                             case "blue":
                                 synchronized (bluePositions){
-                                    bluePositions = (float[]) dinObject.readUnshared();
+                                    bluePositions = (float[])
+                                            dinObject.readUnshared();
                                     doutObject.writeUnshared(orangePositions);
                                 }
                                 break;
 
                             case "orange":
                                 synchronized (orangePositions){
-                                    orangePositions = (float[]) dinObject.readUnshared();
+                                    orangePositions = (float[])
+                                            dinObject.readUnshared();
                                     doutObject.writeUnshared(bluePositions);
                                 }
                                 break;
 
                             default:
+                                System.err.println("Switch-case: Something " +
+                                        "went wrong in ServerListener!!!");
                                 break;
                         }
                     }
                     catch(EOFException eof){
                         closeThread();
-                        System.err.println("Error - ServerListener - readObject: " + eof);
+                        System.err.println("Error - ServerListener - " +
+                                "readObject: " + eof);
                         eof.printStackTrace();
                     } catch (ClassNotFoundException e) {
                         closeThread();
-                        System.err.println("Error - ServerListener - readObject: " + e);
+                        System.err.println("Error - ServerListener - " +
+                                "readObject: " + e);
                         e.printStackTrace();
                     }
                 }
                 closeThread();
-                System.out.println("####### Server listener is terminating #######");
+                System.out.println("####### Server listener is terminating " +
+                        "#######");
             }
             catch (IOException e) {
                 closeThread();
@@ -406,8 +421,8 @@ public class GUIServer extends Application{
         } // run
 
         /**
-         * To close the socket and all streams in case an exception occurs or the while
-         * loop has ended for some reason.
+         * To close the socket and all streams in case an exception occurs
+         * or the while loop has ended for some reason.
          *
          */
         private void closeThread(){
